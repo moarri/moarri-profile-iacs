@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     for s in snow_profiles:
         print(s[1], flush=True)
-        profileImage = ProfileGraphicsImage(s[0], 700, 620)
+        profileImage = ProfileGraphicsImage(s[0], 800, 620)
         if not unify_snow_heights:
             snow_profile_height = round(s[0].results.measurements.hs.snow_height / 10 * 1.1) * 10
         profileImage.maxSnowHeight = snow_profile_height
