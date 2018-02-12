@@ -172,7 +172,7 @@ class ProfileGraphicsImage:
                     self.maxSnowHeight - self.boottomOfGraph)
         self.hardnessTextVerticalPosition = self.main_top_position + self.temp_scale_height + int(
             self.tempHardnessSeparatorWidth / 2) + int((self.hardnessScaleHeight - self.tempHardnessSeparatorWidth) / 2)
-        self._top_temp_position = self.bottomHarndesScalePosition - (self.tempHardnessSeparatorWidth / 2)
+        self._top_temp_position = self.temp_hardness_separator_position - (self.tempHardnessSeparatorWidth / 2)
 
     def _draw_inner_borders_scales_grids(self):
         border_width = self._border_settings['width']
@@ -204,7 +204,7 @@ class ProfileGraphicsImage:
             self._graphics.line([x, self.temp_hardness_separator_position, x,
                                  self.temp_hardness_separator_position + self.mainMarkersLength],
                                 fill=border_color)
-            self._graphics.line([x, self._top_temp_position, x, self._top_temp_position - self.mainMarkersLength],
+            self._graphics.line([x, self.bottomHarndesScalePosition, x, self.bottomHarndesScalePosition - self.mainMarkersLength],
                                 fill=border_color)
             if h <= 1000:
                 draw_centered_string(self._graphics, (x, self.hardnessTextVerticalPosition), str(h), self.text_color,
@@ -217,7 +217,7 @@ class ProfileGraphicsImage:
             self._graphics.line([x, self.temp_hardness_separator_position, x,
                                  self.temp_hardness_separator_position + self.mainMarkersLength],
                                 fill=border_color)
-            self._graphics.line([x, self._top_temp_position, x, self._top_temp_position - self.mainMarkersLength],
+            self._graphics.line([x, self.bottomHarndesScalePosition, x, self.bottomHarndesScalePosition - self.mainMarkersLength],
                                 fill=border_color)
             draw_centered_string(self._graphics, (x, self.hardnessTextVerticalPosition), htype.code, self.text_color,
                                  self._default_bold_font)
@@ -378,10 +378,11 @@ class ProfileGraphicsImage:
         layers_hardness = []
         last = None
         last_layer = None
+        right_line_x = self._main_drawing_right_position-1
         for l in layers:
             if first_layer:
                 y = self.bottomInnerPosition - int((top_height - l.depth_top - self.boottomOfGraph) * self.scaleVertical)
-                start = (self._main_drawing_right_position, y,)
+                start = (right_line_x, y,)
                 last = (self._main_drawing_right_position - int(l.hardness.cardinal_value.hardness * self.scaleHorizontalHardness), y,)
                 layers_hardness.append(start)
                 layers_hardness.append(last)
@@ -392,9 +393,7 @@ class ProfileGraphicsImage:
                         (top_height - l.depth_top - self.boottomOfGraph) * self.scaleVertical)
                     p1 = (last[0], y,)
                     layers_hardness.append(p1)
-                    last = (
-                    self._main_drawing_right_position - int(l.hardness.cardinal_value.hardness * self.scaleHorizontalHardness),
-                    y,)
+                    last = (self._main_drawing_right_position - int(l.hardness.cardinal_value.hardness * self.scaleHorizontalHardness), y,)
                     layers_hardness.append(last)
             last_layer = l
         if last_layer is not None:
@@ -402,7 +401,7 @@ class ProfileGraphicsImage:
                 (top_height - (last_layer.depth_top + last_layer.thickness) - self.boottomOfGraph) * self.scaleVertical)
             p1 = (last[0], y,)
             layers_hardness.append(p1)
-            last = (self._main_drawing_right_position, y,)
+            last = (right_line_x, y,)
             layers_hardness.append(last)
             # layersHardness.append(start)
             fill_color = ImageColor.getrgb(self.colorHandHardness)
@@ -413,7 +412,7 @@ class ProfileGraphicsImage:
                 y = last[1] + (self.handHardnessLineWidth / 2)
                 # lineStroke = new BasicStroke(1)
                 self._graphics.rectangle(
-                    [self._main_drawing_left_position + 1, y, self._main_drawing_right_position, self.bottomInnerPosition],
+                    [self._main_drawing_left_position + 1, y, right_line_x, self.bottomInnerPosition],
                     fill=self.colorPitBaseSnow)
 
     def _create_layer_desc(self, l):
@@ -504,13 +503,16 @@ class ProfileGraphicsImage:
                 x1 = col.right_border
                 x2 = x1 - self.mainMarkersLength
                 self._graphics.line([(x1, l.y2), (x2, l.y2)], fill=border_color, width=1)
+                x1 = col.left_border
+                x2 = col.borders[2]
+                self._graphics.line([(x1, l.y2), (x2, l.y2)], fill=border_color, width=1)
             col = self._drawn_columns.find_single_column(DescriptionColumnType.TESTS)
             if col:
                 x1 = col.left_border
                 x2 = x1 + self.mainMarkersLength
                 self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=border_color, width=1)
                 x1 = col.right_border
-                x2 = x2 - self.mainMarkersLength
+                x2 = x1 - self.mainMarkersLength
                 self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=border_color, width=1)
 
             text_y = l.y2 + int(l.thickness / 2)
@@ -528,7 +530,13 @@ class ProfileGraphicsImage:
                 if col:
                     image_primary = self._icon_provider.find_image(l.layer.grain_form_primary.code)
                     if l.layer.grain_form_secondary is not None and l.layer.grain_form_secondary != l.layer.grain_form_primary:
-                        image_secondary = self._icon_provider.find_image(l.layer.grain_form_secondary)
+                        image_secondary = self._icon_provider.find_image(l.layer.grain_form_secondary.code)
+                        total_width = image_primary.size[0]+image_secondary.size[0]+2
+                        left_pos = col.text_position - total_width/2
+                        pos1 = int(left_pos + image_primary.size[0]/2)
+                        pos2 = int(left_pos + image_primary.size[0] + 2 + image_secondary.size[0]/2)
+                        self._paste_centered_image((pos1, text_y), image_primary)
+                        self._paste_centered_image((pos2, text_y), image_secondary)
                     else:
                         self._paste_centered_image((col.text_position, text_y), image_primary)
 
@@ -538,7 +546,7 @@ class ProfileGraphicsImage:
                     self._paste_centered_image((col.text_position, text_y), icon)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.LWC)
                 if col:
-                    icon = self._icon_provider.find_image(l.layer.hardness.cardinal_value.code)
+                    icon = self._icon_provider.find_image(l.layer.lwc.cardinal_value.code)
                     self._paste_centered_image((col.text_position, text_y), icon)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.YELLOW_FLAGS)
                 if col:

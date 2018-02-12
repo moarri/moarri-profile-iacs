@@ -91,9 +91,16 @@ class DrawnYellowFlagsColumn(namedtuple('DrawnYellowFlagsColumn', _DRAWN_YELLOW_
         brdrs = []
         lbls = {}
         for yfc in YellowFlagsColumns:
-            brdrs.append(position + detailed_flags_width)
-            lbls[yfc] = (position + text_shift, labels[yfc])
-            position += detailed_flags_width
+            if yfc != YellowFlagsColumns.SUMMARY:
+                brdrs.append(position + detailed_flags_width)
+                lbls[yfc] = (position + text_shift, labels[yfc])
+                position += detailed_flags_width
+            else:
+                subcolumn_width = width - detailed_flags_width*6 - main_markers_length
+                brdrs.append(position + subcolumn_width)
+                lbls[yfc] = (int(position + subcolumn_width/2), labels[yfc])
+                position += subcolumn_width
+
         self = super().__new__(cls, column_type, qualifier, right_border, left_border, width, text_position, brdrs,
                                lbls)
         return self
