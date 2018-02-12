@@ -2,7 +2,7 @@
 
 __author__ = 'Kuba Radliński'
 
-from iacs_profile.codeable_enum import CodeableEnum
+from moarri_profile_iacs.utils.enumeratings import CodeableEnum
 
 
 class IACSAspectCardinalType(CodeableEnum):

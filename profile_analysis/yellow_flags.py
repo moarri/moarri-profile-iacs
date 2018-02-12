@@ -1,5 +1,5 @@
 from iacs_profile. iacs_caaml_types import IACSHardnessType, IACSGrainShapeType
-from utils.auto_enumerate import AutoName
+from utils.enumeratings import AutoName
 from enum import auto
 from collections import namedtuple, Set
 

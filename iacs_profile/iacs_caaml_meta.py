@@ -2,7 +2,7 @@
 
 __author__ = 'Kuba Radliński'
 
-from iacs_profile.codeable_enum import CodeableEnum
+from utils.enumeratings import CodeableEnum
 from enum import Enum
 
 ATTR_UOM = "uom"
