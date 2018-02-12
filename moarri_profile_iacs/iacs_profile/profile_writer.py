@@ -2,8 +2,8 @@
 
 __author__ = 'Kuba Radliński'
 
-from iacs_profile.iacs_caaml_meta import *
-from iacs_profile.iacs_caaml_types import *
+from moarri_profile_iacs.iacs_profile.iacs_caaml_meta import *
+from moarri_profile_iacs.iacs_profile.iacs_caaml_types import *
 from xml.dom.minidom import Document
 
 
@@ -24,6 +24,7 @@ def _create_aspect_node(document, aspect):
     aspect_node = document.createElement(AspectMeta.MAIN_NODE.code)
     aspect_node.appendChild(_create_value_node(document, AspectMeta.CHILD_POSITION, aspect.aspect_position))
     return aspect_node
+
 
 def _create_wind_dir_node(document, wind_dir):
     wind_dir_node = document.createElement(SnowProfileMeasurementsMeta.CHILD_WIND_DIR.code)

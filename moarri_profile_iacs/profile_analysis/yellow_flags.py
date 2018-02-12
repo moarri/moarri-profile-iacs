@@ -1,7 +1,7 @@
 from moarri_profile_iacs.iacs_profile. iacs_caaml_types import IACSHardnessType, IACSGrainShapeType
 from moarri_profile_iacs.utils.enumeratings import AutoName
 from enum import auto
-from collections import namedtuple, Set
+from collections import namedtuple
 
 _SUSPECTED_GRAIN_TYPES = [IACSGrainShapeType.FC, IACSGrainShapeType.FC_SO, IACSGrainShapeType.FC_SF,
                           IACSGrainShapeType.FC_XR, IACSGrainShapeType.DH, IACSGrainShapeType.DH_CP,
@@ -53,7 +53,8 @@ def calculate_flags(profile):
     for l in profile.results.measurements.strat_profile:
         if previous_layer is not None:
             flags = set()
-            if previous_layer.grain_size.avg.double_value != 0.0 and l.grain_size.avg.double_value != 0.0 and abs(previous_layer.grain_size.avg.double_value - l.grain_size.avg.double_value) > 0.5:
+            if previous_layer.grain_size.avg.double_value != 0.0 and l.grain_size.avg.double_value != 0.0 and \
+                abs(previous_layer.grain_size.avg.double_value - l.grain_size.avg.double_value) > 0.5:
                 flags.add(YellowFlagsType.GRAIN_SIZE_DIFF)
             if abs(previous_layer.hardness.cardinal_value.yf_value - l.hardness.cardinal_value.yf_value) > 1:
                 flags.add(YellowFlagsType.HARDNESS_DIFF)
@@ -79,7 +80,8 @@ def calculate_flags(profile):
                 if previous_layer_flags is not None and previous_boundary_flags is not None:
                     new_score = max(previous_layer_flags.score(), f.score())
                     previous_score = previous_boundary_flags.score()
-                    final_flags.append(LayerBoundaryFlags(previous_boundary_flags.presentation_depth, previous_boundary_flags.flags, previous_score + new_score))
+                    final_flags.append(LayerBoundaryFlags(previous_boundary_flags.presentation_depth,
+                                                          previous_boundary_flags.flags, previous_score + new_score))
                     previous_boundary_flags = None
                 previous_layer_flags = f
                 final_flags.append(f)

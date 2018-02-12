@@ -3,7 +3,6 @@
 __author__ = 'Kuba Radliński'
 
 
-import os
 import math
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
@@ -28,17 +27,6 @@ class LayerDesc:
         self.thickness = thickness
         self.layer = layer
 
-
-
-
-COLUMNS_4_CHECK = {
-    'tests': ['yellow_flags', 'lwc', 'grain_size', 'grain_shape', 'hardness'],
-    'yellow_flags': ['lwc', 'grain_size', 'grain_shape', 'hardness'],
-    'lwc': ['grain_size', 'grain_shape', 'hardness'],
-    'grain_size': ['grain_shape', 'hardness'],
-    'grain_shape': ['hardness'],
-    'hardness': []
-}
 
 DEFAULT_BORDER_SETTINGS = {
     'width': 2,
@@ -149,12 +137,6 @@ class ProfileGraphicsImage:
 
     def _calculate_temp_hardness_separator_position(self):
         return
-
-    def _check_next_columns(self, column_name):
-        is_next = False
-        for c in COLUMNS_4_CHECK[column_name]:
-            is_next = is_next or self._column_settings[c].present
-        return is_next
 
     def _prepare_main_drawing_area_values(self):
         border_width = self._border_settings['width']
@@ -527,7 +509,7 @@ class ProfileGraphicsImage:
                     draw_centered_string(self._graphics, (col.text_position, text_y), txt,
                                          self.text_color, self._default_font)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.GRAIN_SHAPE)
-                if col:
+                if col and l.layer.grain_form_primary:
                     image_primary = self._icon_provider.find_image(l.layer.grain_form_primary.code)
                     if l.layer.grain_form_secondary is not None and l.layer.grain_form_secondary != l.layer.grain_form_primary:
                         image_secondary = self._icon_provider.find_image(l.layer.grain_form_secondary.code)
@@ -541,11 +523,11 @@ class ProfileGraphicsImage:
                         self._paste_centered_image((col.text_position, text_y), image_primary)
 
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.HARDNESS)
-                if col:
+                if col and l.layer.hardness.cardinal_value:
                     icon = self._icon_provider.find_image(l.layer.hardness.cardinal_value.code)
                     self._paste_centered_image((col.text_position, text_y), icon)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.LWC)
-                if col:
+                if col and l.layer.lwc.cardinal_value:
                     icon = self._icon_provider.find_image(l.layer.lwc.cardinal_value.code)
                     self._paste_centered_image((col.text_position, text_y), icon)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.YELLOW_FLAGS)

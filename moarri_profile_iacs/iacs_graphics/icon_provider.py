@@ -4,7 +4,8 @@ __author__ = 'Kuba Radliński'
 
 import os
 from PIL import Image
-from moarri_profile_iacs.iacs_profile.iacs_caaml_types import IACSGrainShapeType, IACSHardnessType, IACSLiquidWaterContentType
+from moarri_profile_iacs.iacs_profile.iacs_caaml_types import IACSGrainShapeType, IACSHardnessType,\
+    IACSLiquidWaterContentType
 
 _ICON_PATH = "../resources/icons"
 _ICON_SIZES = [8, 12, 24, 32, 36, 48, 64, 72, 128]
@@ -18,7 +19,7 @@ def _create_icon_path(code, size):
 class IconProvider:
     def __init__(self, size):
         smaller_ro_equal = [x for x in _ICON_SIZES if size >= x]
-        icon_size = smaller_ro_equal[-1] if len(smaller_ro_equal)>0 else _ICON_SIZES[0]
+        icon_size = smaller_ro_equal[-1] if len(smaller_ro_equal) > 0 else _ICON_SIZES[0]
         self._icons = {}
         for item in IACSGrainShapeType:
             self._icons[item.code] = Image.open(_create_icon_path(item.code, icon_size))

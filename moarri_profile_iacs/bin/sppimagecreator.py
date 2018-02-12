@@ -14,15 +14,13 @@ __author__ = 'Kuba Radliński'
 DEFAULT_OUTPUT_FILE = 'C:/TEMP/test-spp-import.xml'
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 3:
         print("usage: program spp_file")
         mydir = os.path.dirname(os.path.abspath(__file__))
         quit(1)
-    elif len(sys.argv) < 3:
-        image_file = 'C:/TEMP/test-spp-import.xml'
-    else:
-        spp_path = sys.argv[1]
-        image_path = sys.argv[2]
+
+    spp_path = sys.argv[1]
+    image_path = sys.argv[2]
     snow_profiles = []
     if os.path.isdir(spp_path):
         if not os.path.isdir(image_path):

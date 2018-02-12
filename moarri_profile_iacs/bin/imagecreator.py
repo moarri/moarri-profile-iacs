@@ -3,7 +3,6 @@
 import sys
 import os
 from moarri_profile_iacs.iacs_profile.profile_parser import parse_caaml_file
-from PIL import ImageColor
 from moarri_profile_iacs.iacs_graphics.profile_image import ProfileGraphicsImage
 from xml.dom import minidom
 
