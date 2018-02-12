@@ -8,16 +8,14 @@ import math
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-from iacs_graphics.tools import draw_centered_string
-from iacs_graphics.descritpion_columns import DescriptionColumnType, ColumnQualifier, DrawnColumn, DrawnColumns,\
-    DrawnYellowFlagsColumn, YellowFlagsColumns, DEFAULT_COLUMN_SETTINGS, DEFAULT_YELLOW_FLAGS_NAMES
-from iacs_graphics.enum_font_code import IACS_GRAIN_SHAPE_TYPE_DICT, IACS_HARDNESS_TYPE_DICT
-from iacs_profile.iacs_caaml_types import IACSHardnessType
-from profile_analysis.yellow_flags import calculate_flags, YFValueType, YellowFlagsType
+from moarri_profile_iacs.iacs_graphics.icon_provider import IconProvider
+from moarri_profile_iacs.iacs_graphics.tools import draw_centered_string
+from moarri_profile_iacs.iacs_graphics.descritpion_columns import DescriptionColumnType, ColumnQualifier, DrawnColumn, \
+    DrawnColumns, DrawnYellowFlagsColumn, YellowFlagsColumns, DEFAULT_COLUMN_SETTINGS, DEFAULT_YELLOW_FLAGS_NAMES
+from moarri_profile_iacs.iacs_profile.iacs_caaml_types import IACSHardnessType
+from moarri_profile_iacs.profile_analysis.yellow_flags import calculate_flags, YFValueType, YellowFlagsType
 
 
-SNOW_FONT_NAME = "IACSSnow"
-SNOW_FONT_FILE_NAME = "IACSSnow.ttf"
 DEFAULT_FONT_NAME = "arial.ttf"
 DEFAULT_BOLD_FONT_NAME = "arialbd.ttf"
 
@@ -53,7 +51,8 @@ class ProfileGraphicsImage:
     _snow_profile = None
     _graphics = None
 
-    _snow_font = None
+    _icon_provider = None
+
     _default_font = None
     _default_bold_font = None
 
@@ -69,7 +68,6 @@ class ProfileGraphicsImage:
     temperatureUnitLabel = "-T[°C]"
     forceUnitLabel = "R[N]"
     font_size = 10
-    snow_font_size = 12
     margin = 5
 
     columnborder_width = 1
@@ -126,11 +124,11 @@ class ProfileGraphicsImage:
         self._drawn_columns = DrawnColumns()
 
     def _init_fonts(self):
-        self._snow_font = ImageFont.truetype(os.path.abspath(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'resources', SNOW_FONT_FILE_NAME)),
-            size=self.snow_font_size)
         self._default_font = ImageFont.truetype(DEFAULT_FONT_NAME, size=self.font_size)
         self._default_bold_font = ImageFont.truetype(DEFAULT_BOLD_FONT_NAME, size=self.font_size)
+
+    def _init_icons_provider(self):
+        self._icon_provider = IconProvider(self.minimalLayerThickness)
 
     def _init_image(self):
         self.image = Image.new('RGB', (self._page_width, self._page_height), self.colorBackground)
@@ -159,14 +157,15 @@ class ProfileGraphicsImage:
         return is_next
 
     def _prepare_main_drawing_area_values(self):
-        self._main_left_position = self._top_x + self._border_width
-        self._main_right_position = self._top_x + self._width - self._border_width - 1
-        self.main_top_position = self._top_y + self._border_width
+        border_width = self._border_settings['width']
+        self._main_left_position = self._top_x + border_width
+        self._main_right_position = self._top_x + self._width - border_width - 1
+        self.main_top_position = self._top_y + border_width
         self.temp_hardness_separator_position = self.main_top_position + self.temp_scale_height
         self.temp_text_vertical_position = self._main_left_position + int(
             (self.temp_scale_height - (self.tempHardnessSeparatorWidth / 2)) / 2)
         self.temp_unit_margin = self._graphics.textsize(self.temperatureUnitLabel)[0] + 3
-        self.bottomInnerPosition = self._top_y + self._height - self._border_width - 1
+        self.bottomInnerPosition = self._top_y + self._height - border_width - 1
         self.bottomHarndesScalePosition = self.main_top_position + self.temp_scale_height + self.hardnessScaleHeight
         self.hardnessTopPosition = self.bottomHarndesScalePosition + self.tempHardnessSeparatorWidth
         self.scaleVertical = (self.bottomInnerPosition - self.hardnessTopPosition) / (
@@ -176,15 +175,17 @@ class ProfileGraphicsImage:
         self._top_temp_position = self.bottomHarndesScalePosition - (self.tempHardnessSeparatorWidth / 2)
 
     def _draw_inner_borders_scales_grids(self):
+        border_width = self._border_settings['width']
+        border_color = self._border_settings['color']
         self._graphics.line([self._main_left_position, self.bottomHarndesScalePosition, self._main_drawing_right_position,
-                             self.bottomHarndesScalePosition], fill=self._border_color)
+                             self.bottomHarndesScalePosition], fill=border_color)
         self.forceUnitMargin = self._default_font.getsize(self.forceUnitLabel)[0] + 3
         draw_centered_string(self._graphics, (
             self._main_left_position + int(self.forceUnitMargin / 2), self.hardnessTextVerticalPosition),
                              self.forceUnitLabel,
                              self.text_color, self._default_font)
         self._graphics.line([self._main_left_position, self.temp_hardness_separator_position, self._main_right_position,
-                             self.temp_hardness_separator_position], fill=self._border_color,
+                             self.temp_hardness_separator_position], fill=border_color,
                             width=self.tempHardnessSeparatorWidth)
         draw_centered_string(self._graphics,
                              (self._main_left_position + (self.temp_unit_margin / 2), self.temp_text_vertical_position),
@@ -195,15 +196,16 @@ class ProfileGraphicsImage:
         self._draw_hardness_scales_grids()
 
     def _draw_hardness_scales_grids(self):
+        border_color = self._border_settings['color']
         self.scaleHorizontalHardness = (self._main_drawing_right_position - self._main_drawing_left_position) / 1200
         for h in range(200, 1000, 200):
 
             x = self._main_drawing_right_position - int(h * self.scaleHorizontalHardness)
             self._graphics.line([x, self.temp_hardness_separator_position, x,
                                  self.temp_hardness_separator_position + self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             self._graphics.line([x, self._top_temp_position, x, self._top_temp_position - self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             if h <= 1000:
                 draw_centered_string(self._graphics, (x, self.hardnessTextVerticalPosition), str(h), self.text_color,
                                      self._default_font)
@@ -214,23 +216,24 @@ class ProfileGraphicsImage:
             x = self._main_drawing_right_position - (htype.hardness * self.scaleHorizontalHardness)
             self._graphics.line([x, self.temp_hardness_separator_position, x,
                                  self.temp_hardness_separator_position + self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             self._graphics.line([x, self._top_temp_position, x, self._top_temp_position - self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             draw_centered_string(self._graphics, (x, self.hardnessTextVerticalPosition), htype.code, self.text_color,
                                  self._default_bold_font)
             self._graphics.line([x, self.hardnessTopPosition, x, self.bottomInnerPosition],
                                 fill=self.color_hand_harness_grid)
 
     def _draw_temperature_scales_grids(self):
+        border_color = self._border_settings['color']
         self.scaleHorizontalTemp = (self._main_drawing_right_position - self._main_left_position) / abs(self.minTemp)
         shift = 2 if abs(self.minTemp) > 24 else 1
         for t in range(0, abs(self.minTemp), shift):
             x = self._main_drawing_right_position - int(t * self.scaleHorizontalTemp)
             self._graphics.line([x, self.main_top_position, x, self.main_top_position + self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             self._graphics.line([x, self._top_temp_position, x, self._top_temp_position - self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             label = str(t)
             label_width = self._default_font.getsize(label)[0]
             if (x + int(label_width / 2)) > (1 + self._main_left_position + self.temp_unit_margin):
@@ -243,9 +246,9 @@ class ProfileGraphicsImage:
         for t in range(0, plus_temp_border, shift):
             x = self._main_drawing_right_position + (t * self.scaleHorizontalTemp)
             self._graphics.line([x, self.main_top_position, x, self.main_top_position + self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             self._graphics.line([x, self._top_temp_position, x, self._top_temp_position - self.mainMarkersLength],
-                                fill=self._border_color)
+                                fill=border_color)
             label = str(t)
             label_width = self._default_font.getsize(label)[0]
             if (x + (label_width / 2)) < (1 + self._main_right_position):
@@ -253,6 +256,8 @@ class ProfileGraphicsImage:
                                      self._default_font)
 
     def _draw_data_columns(self):
+        border_color = self._border_settings['color']
+
         top_columns_position = self.temp_hardness_separator_position + int(self.tempHardnessSeparatorWidth / 2)
         last_column_border = self._main_right_position
 
@@ -268,7 +273,7 @@ class ProfileGraphicsImage:
                                              dc.label, self.text_color, self._default_font)
                     self._graphics.line(
                             [last_column_border, top_columns_position, last_column_border, self.bottomInnerPosition],
-                            fill=self._border_color)
+                            fill=border_color)
                     self._drawn_columns.add_column(DrawnColumn(dc.column_type, dc.column_qualifier, right_position,
                                                                left_position, dc.width, text_position));
 
@@ -282,7 +287,7 @@ class ProfileGraphicsImage:
                                              dc.label, self.text_color, self._default_font)
                     self._graphics.line(
                             [last_column_border, top_columns_position, last_column_border, self.bottomInnerPosition],
-                            fill=self._border_color)
+                            fill=border_color)
                     if dc.column_type == DescriptionColumnType.YELLOW_FLAGS:
                         drawn_column = DrawnYellowFlagsColumn(dc.column_type, dc.column_qualifier, right_position,
                                                               left_position, dc.width, text_position,
@@ -309,14 +314,16 @@ class ProfileGraphicsImage:
                                     skip_last=(dc.column_qualifier == ColumnQualifier.LEFT))
 
     def _draw_snow_heights(self, left_position, rigth_position, skip_last=False):
+        border_color = self._border_settings['color']
+
         center_depth_position = left_position + int((rigth_position - left_position - self.columnborder_width) / 2)
         for sh in range(self.boottomOfGraph, self.maxSnowHeight + 10, 10):
             y = self.bottomInnerPosition - ((sh - self.boottomOfGraph) * self.scaleVertical)
             self._graphics.line([left_position, y, left_position + self.mainMarkersLength, y],
-                                fill=self._border_color)
+                                fill=border_color)
             self._graphics.line(
                 [rigth_position, y, rigth_position - self.mainMarkersLength, y],
-                fill=self._border_color)
+                fill=border_color)
             if sh > self.boottomOfGraph:
                 write_label = True if not skip_last else sh < self.maxSnowHeight
                 if write_label:
@@ -326,10 +333,10 @@ class ProfileGraphicsImage:
                     y1 = self.bottomInnerPosition - ((sh - i - self.boottomOfGraph) * self.scaleVertical)
                     self._graphics.line(
                         [left_position, y1, left_position + self.secondaryMarkersLength, y1],
-                        fill=self._border_color)
+                        fill=border_color)
                     self._graphics.line([rigth_position, y1,
                                          rigth_position - self.secondaryMarkersLength, y1],
-                                        fill=self._border_color)
+                                        fill=border_color)
 
     def _draw_temp_profile(self):
         if self._snow_profile is None:
@@ -415,6 +422,7 @@ class ProfileGraphicsImage:
         return LayerDesc(0, 0, th, l)
 
     def _draw_layers_desc(self, adjust_2_now_top=True):
+        border_color = self._border_settings['color']
         if self._snow_profile is None:
             return
         layers = self._snow_profile.results.measurements.strat_profile
@@ -472,34 +480,34 @@ class ProfileGraphicsImage:
             right_rigth_distance_position = right_distance_column.right_border if right_distance_column else self._main_right_position
             self._graphics.line(
                 [(left_left_distance_position, l.y1), (right_left_distance_position, l.y2)],
-                fill=self._border_color, width=1)
+                fill=border_color, width=1)
             col = self._drawn_columns.find_single_column(DescriptionColumnType.YELLOW_FLAGS)
             x = col.left_border if col and l.layer  and flag_pos > 0 else left_rigth_distance_position
-            self._graphics.line([(right_left_distance_position, l.y2), (x, l.y2)], fill=self._border_color,
+            self._graphics.line([(right_left_distance_position, l.y2), (x, l.y2)], fill=border_color,
                                 width=1)
             self._graphics.line(
                 [(left_rigth_distance_position, l.y2), (right_rigth_distance_position, l.y1)],
-                fill=self._border_color, width=1)
+                fill=border_color, width=1)
 
             col = self._drawn_columns.find_column(DescriptionColumnType.SNOW_HEIGTH, ColumnQualifier.LEFT)
             if col:
                 x1 = col.right_border
                 x2 = x1 + self.mainMarkersLength
-                self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=self._border_color, width=1)
+                self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=border_color, width=1)
 
             col = self._drawn_columns.find_single_column(DescriptionColumnType.YELLOW_FLAGS)
             if col:
                 x1 = col.right_border
                 x2 = x1 - self.mainMarkersLength
-                self._graphics.line([(x1, l.y2), (x2, l.y2)], fill=self._border_color, width=1)
+                self._graphics.line([(x1, l.y2), (x2, l.y2)], fill=border_color, width=1)
             col = self._drawn_columns.find_single_column(DescriptionColumnType.TESTS)
             if col:
                 x1 = col.left_border
                 x2 = x1 + self.mainMarkersLength
-                self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=self._border_color, width=1)
+                self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=border_color, width=1)
                 x1 = col.right_border
                 x2 = x2 - self.mainMarkersLength
-                self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=self._border_color, width=1)
+                self._graphics.line([(x1, l.y1), (x2, l.y1)], fill=border_color, width=1)
 
             text_y = l.y2 + int(l.thickness / 2)
             if l.layer is not None:
@@ -513,19 +521,25 @@ class ProfileGraphicsImage:
                     draw_centered_string(self._graphics, (col.text_position, text_y), txt,
                                          self.text_color, self._default_font)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.GRAIN_SHAPE)
-                if col:
-                    txt = IACS_GRAIN_SHAPE_TYPE_DICT[l.layer.grain_form_primary]
-                    if l.layer.grain_form_secondary is not None and l.layer.grain_form_secondary != l.layer.grain_form_primary:
-                        txt = txt + IACS_GRAIN_SHAPE_TYPE_DICT[l.layer.grain_form_secondary]
-                    draw_centered_string(self._graphics, (col.text_position, text_y), txt,
-                                         self.text_color,
-                                         self._snow_font)
-                col = self._drawn_columns.find_single_column(DescriptionColumnType.HARDNESS)
-                if col:
-                    txt = IACS_HARDNESS_TYPE_DICT[l.layer.hardness.cardinal_value]
-                    draw_centered_string(self._graphics, (col.text_position, text_y), txt,
-                                         self.text_color,
-                                         self._snow_font)
+                # if col:
+                #     txt = IACS_GRAIN_SHAPE_TYPE_DICT[l.layer.grain_form_primary]
+                #     if l.layer.grain_form_secondary is not None and l.layer.grain_form_secondary != l.layer.grain_form_primary:
+                #         txt = txt + IACS_GRAIN_SHAPE_TYPE_DICT[l.layer.grain_form_secondary]
+                #     draw_centered_string(self._graphics, (col.text_position, text_y), txt,
+                #                          self.text_color,
+                #                          self._snow_font)
+                # col = self._drawn_columns.find_single_column(DescriptionColumnType.HARDNESS)
+                # if col:
+                #     txt = IACS_HARDNESS_TYPE_DICT[l.layer.hardness.cardinal_value]
+                #     draw_centered_string(self._graphics, (col.text_position, text_y), txt,
+                #                          self.text_color,
+                #                          self._snow_font)
+                # col = self._drawn_columns.find_single_column(DescriptionColumnType.LWC)
+                # if col:
+                #     txt = IACS_HARDNESS_TYPE_DICT[l.layer.hardness.cardinal_value]
+                #     draw_centered_string(self._graphics, (col.text_position, text_y), txt,
+                #                          self.text_color,
+                #                          self._snow_font)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.YELLOW_FLAGS)
                 if col:
                     f = self._yellow_flags[flag_pos]
@@ -556,6 +570,7 @@ class ProfileGraphicsImage:
 
     def draw_graph(self):
         self._init_fonts()
+        self._init_icons_provider()
         self._init_image()
         self._draw_border()
         self._prepare_main_drawing_area_values()

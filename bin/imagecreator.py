@@ -16,9 +16,9 @@ if __name__ == '__main__':
         mydir = os.path.dirname(os.path.abspath(__file__))
         # caaml_file = os.path.abspath(os.path.join(mydir, '..', 'test_files', 'Snowprofile_IACS_SLF7245.xml'))
         caaml_file = os.path.abspath(os.path.join(mydir, '..', 'test_files', 'markowe.xml'))
-        image_file = 'C:/TEMP/pil-profile-test.png'
+        image_file = 'D:/TEMP/pil-profile-test.png'
     elif len(sys.argv) < 3:
-        image_file = 'C:/TEMP/pil-profile-test.png'
+        image_file = 'D:/TEMP/pil-profile-test.png'
     else:
         caaml_file = sys.argv[1]
         image_file = sys.argv[2]
