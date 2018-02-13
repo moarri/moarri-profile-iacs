@@ -2,21 +2,21 @@
 
 __author__ = 'Kuba Radliński'
 
-
+import os
 import math
 
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 
-from moarri_profile_iacs.iacs_graphics.icon_provider import IconProvider
 from moarri_profile_iacs.iacs_graphics.tools import draw_centered_string
 from moarri_profile_iacs.iacs_graphics.descritpion_columns import DescriptionColumnType, ColumnQualifier, DrawnColumn, \
     DrawnColumns, DrawnYellowFlagsColumn, YellowFlagsColumns, DEFAULT_COLUMN_SETTINGS, DEFAULT_YELLOW_FLAGS_NAMES
+from moarri_profile_iacs.iacs_graphics.enum_font_code import *
 from moarri_profile_iacs.iacs_profile.iacs_caaml_types import IACSHardnessType
-from moarri_profile_iacs.profile_analysis.yellow_flags import calculate_flags, YFValueType, YellowFlagsType
+from moarri_profile_iacs.profile_analysis.yellow_flags import calculate_flags, YFValueType
 
-
-DEFAULT_FONT_NAME = "arial.ttf"
-DEFAULT_BOLD_FONT_NAME = "arialbd.ttf"
+_SNOW_FONT_FILE_NAME = "SnowSymbolsIACS.ttf"
+_DEFAULT_FONT_NAME = "arial.ttf"
+_DEFAULT_BOLD_FONT_NAME = "arialbd.ttf"
 
 
 class LayerDesc:
@@ -39,10 +39,10 @@ class ProfileGraphicsImage:
     _snow_profile = None
     _graphics = None
 
-    _icon_provider = None
-
+    _snow_font = None
     _default_font = None
     _default_bold_font = None
+    _snow_font_size = 12
 
     _main_left_position = 0
     _main_right_position = 0
@@ -55,6 +55,7 @@ class ProfileGraphicsImage:
 
     temperatureUnitLabel = "-T[°C]"
     forceUnitLabel = "R[N]"
+
     font_size = 10
     margin = 5
 
@@ -112,11 +113,12 @@ class ProfileGraphicsImage:
         self._drawn_columns = DrawnColumns()
 
     def _init_fonts(self):
-        self._default_font = ImageFont.truetype(DEFAULT_FONT_NAME, size=self.font_size)
-        self._default_bold_font = ImageFont.truetype(DEFAULT_BOLD_FONT_NAME, size=self.font_size)
-
-    def _init_icons_provider(self):
-        self._icon_provider = IconProvider(self.minimalLayerThickness)
+        self._snow_font_size = int(0.8*self.minimalLayerThickness)
+        snow_font_path = os.path.abspath(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fonts', _SNOW_FONT_FILE_NAME))
+        self._snow_font = ImageFont.truetype(snow_font_path, size=self._snow_font_size)
+        self._default_font = ImageFont.truetype(_DEFAULT_FONT_NAME, size=self.font_size)
+        self._default_bold_font = ImageFont.truetype(_DEFAULT_BOLD_FONT_NAME, size=self.font_size)
 
     def _init_image(self):
         self.image = Image.new('RGB', (self._page_width, self._page_height), self.colorBackground)
@@ -402,10 +404,6 @@ class ProfileGraphicsImage:
         th = th if th >= self.minimalLayerThickness else self.minimalLayerThickness
         return LayerDesc(0, 0, th, l)
 
-    def _paste_centered_image(self, xy, image):
-        w, h = image.size
-        self.image.paste(image, (round(xy[0] - w / 2), round(xy[1] - h / 2)))
-
     def _draw_layers_desc(self, adjust_2_now_top=True):
         border_color = self._border_settings['color']
         if self._snow_profile is None:
@@ -510,26 +508,22 @@ class ProfileGraphicsImage:
                                          self.text_color, self._default_font)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.GRAIN_SHAPE)
                 if col and l.layer.grain_form_primary:
-                    image_primary = self._icon_provider.find_image(l.layer.grain_form_primary.code)
+                    txt = IACS_GRAIN_SHAPE_TYPE_DICT[l.layer.grain_form_primary]
                     if l.layer.grain_form_secondary is not None and l.layer.grain_form_secondary != l.layer.grain_form_primary:
-                        image_secondary = self._icon_provider.find_image(l.layer.grain_form_secondary.code)
-                        total_width = image_primary.size[0]+image_secondary.size[0]+2
-                        left_pos = col.text_position - total_width/2
-                        pos1 = int(left_pos + image_primary.size[0]/2)
-                        pos2 = int(left_pos + image_primary.size[0] + 2 + image_secondary.size[0]/2)
-                        self._paste_centered_image((pos1, text_y), image_primary)
-                        self._paste_centered_image((pos2, text_y), image_secondary)
-                    else:
-                        self._paste_centered_image((col.text_position, text_y), image_primary)
+                        txt += IACS_GRAIN_SHAPE_TYPE_DICT[l.layer.grain_form_secondary]
+                    draw_centered_string(self._graphics, (col.text_position, text_y), txt, self.text_color,
+                                         self._snow_font)
 
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.HARDNESS)
                 if col and l.layer.hardness.cardinal_value:
-                    icon = self._icon_provider.find_image(l.layer.hardness.cardinal_value.code)
-                    self._paste_centered_image((col.text_position, text_y), icon)
+                    txt = IACS_HARDNESS_TYPE_DICT[l.layer.hardness.cardinal_value]
+                    draw_centered_string(self._graphics, (col.text_position, text_y), txt, self.text_color,
+                                         self._snow_font)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.LWC)
                 if col and l.layer.lwc.cardinal_value:
-                    icon = self._icon_provider.find_image(l.layer.lwc.cardinal_value.code)
-                    self._paste_centered_image((col.text_position, text_y), icon)
+                    txt = IACS_LIQUID_WATER_CONTENT_TYPE_DICT[l.layer.lwc.cardinal_value]
+                    draw_centered_string(self._graphics, (col.text_position, text_y), txt, self.text_color,
+                                         self._snow_font)
                 col = self._drawn_columns.find_single_column(DescriptionColumnType.YELLOW_FLAGS)
                 if col:
                     f = self._yellow_flags[flag_pos]
@@ -560,7 +554,6 @@ class ProfileGraphicsImage:
 
     def draw_graph(self):
         self._init_fonts()
-        self._init_icons_provider()
         self._init_image()
         self._draw_border()
         self._prepare_main_drawing_area_values()
