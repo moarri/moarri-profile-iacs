@@ -1,9 +1,39 @@
 # -*- coding: utf-8 -*-
 
+# Copyright 2018 Moarri Project
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 __author__ = 'Kuba Radliński'
 
+import pkg_resources
 from moarri_profile_iacs.iacs_profile.iacs_caaml_profile import *
-from xml.dom import Node
+from xml.dom import minidom, Node
+from lxml import etree
+from enum import Enum
+
+_XSD_PATH = "xsd"
+
+
+class CAAMLProfileIACSVersion(Enum):
+    UNKNOWN = 0
+    V5 = 5
+    V6 = 6
+
+
+_XSD_FILE_NAMES = {
+    "v6": "CAAMLv6_SnowProfileIACS.xsd"
+}
 
 
 def trim_string(x):
@@ -28,7 +58,37 @@ def extract_unit_attribute_name(enum_cls, el, attr_name):
     return enum_cls.value_of(trim_string(el.getAttribute(attr_name)))
 
 
-def parse_caaml_file(xmldoc):
+def _xmlschema(version):
+    splitted = version.split(".")
+    if len(splitted) > 0:
+        main_version = splitted[0]
+        if main_version in _XSD_FILE_NAMES:
+            xsd_file = _XSD_FILE_NAMES[main_version]
+            xsd_string = pkg_resources.resource_string(__name__, _XSD_PATH+"/"+version+"/"+xsd_file)
+            if xsd_string:
+                xmlschema_doc = etree.XML(xsd_string)
+                schema = etree.XMLSchema(xmlschema_doc)
+                return schema
+    return None
+
+
+def check_caaml_file(filename):
+    caaml_doc = etree.parse(filename)
+    root_node = caaml_doc.getroot()
+    if root_node and 'caaml' in root_node.nsmap:
+        caaml_string = root_node.nsmap['caaml']
+        version = caaml_string.split("/")[-1]
+        xmlschema = _xmlschema(version)
+        if xmlschema.validate(caaml_doc):
+            return True, version
+    return False, CAAMLProfileIACSVersion.UNKNOWN
+
+
+def parse_caaml_file(filename):
+    return parse_caaml_doc(minidom.parse(filename))
+
+
+def parse_caaml_doc(xmldoc):
     snow_profile_node = xmldoc.firstChild
     if not snow_profile_node.localName == SnowProfileMeta.MAIN_NODE.code:
         return None
